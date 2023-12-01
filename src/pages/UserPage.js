@@ -100,6 +100,10 @@ export default function UserPage() {
 
   const [openConfirmation, setOpenConfirmation] = useState(false);
 
+  const handleFileChange = (e) => {
+    setEditUser({ ...editUser, avatar: e.target.files[0] });
+  };
+
   const handleCloseMenu = () => {
     setOpen(null);
   };
@@ -289,10 +293,16 @@ export default function UserPage() {
         console.error('Vui lòng điền đầy đủ thông tin cần thiết');
         return;
       }
+      const formData = new FormData();
+      formData.append("image", editUser.avatar);
       const accessToken = localStorage.getItem('accessToken');
-      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 
-      const response = await axios.put(`http://localhost:5000/edit-user/${userId}`, updatedUserData, { headers });
+      const response = await axios.put(`http://localhost:5000/edit-user/${userId}`, formData,  {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
 
       if (response.data.success) {
         window.location.reload();
@@ -510,15 +520,19 @@ export default function UserPage() {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Ảnh đại diện"
-                  name="avatar"
-                  value={editUser.avatar}
-                  onChange={handleInputChange}
-                  error={Boolean(errors.avatar)}
-                  helperText={renderError('avatar')}
+                <input
+                  type="file"
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  id="avatarInput"
+                  style={{ display: 'none' }}
                 />
+                <label htmlFor="avatarInput">
+                  <Button variant="contained" component="span">
+                    Chọn ảnh
+                  </Button>
+                  </label>
+                {editUser.avatar && <p>File đã chọn: {editUser.avatar.name}</p>}
               </Grid>
               <Grid item xs={12}>
                 <Grid item xs={12}>
@@ -536,7 +550,7 @@ export default function UserPage() {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  type='date'
+                  type="date"
                   label="Ngày Sinh"
                   name="birthDay"
                   value={editUser.birthDay}
