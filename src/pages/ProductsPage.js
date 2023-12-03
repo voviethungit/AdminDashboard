@@ -435,47 +435,36 @@ export default function ProductsPage() {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Ảnh Chính"
+                <input
+                  type="file"
                   name="imagePath"
-                  value={carData.imagePath}
+                  accept="image/*"
                   onChange={handleCarInputChange}
-                  error={!!addCarErrors.imagePath}
-                  helperText={addCarErrors.imagePath}
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Ảnh Phụ 1"
+                <input
+                  type="file"
                   name="image1"
-                  value={carData.image1}
+                  accept="image/*"
                   onChange={handleCarInputChange}
-                  error={!!addCarErrors.image1}
-                  helperText={addCarErrors.image1}
                 />
+                
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Ảnh Phụ 2"
+                <input
+                  type="file"
                   name="image2"
-                  value={carData.image2}
+                  accept="image/*"
                   onChange={handleCarInputChange}
-                  error={!!addCarErrors.image2}
-                  helperText={addCarErrors.image2}
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Ảnh Phụ 3"
+                <input
+                  type="file"
                   name="image3"
-                  value={carData.image3}
+                  accept="image/*"
                   onChange={handleCarInputChange}
-                  error={!!addCarErrors.image3}
-                  helperText={addCarErrors.image3}
                 />
               </Grid>
               <Grid item xs={12}>

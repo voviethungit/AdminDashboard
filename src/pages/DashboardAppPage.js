@@ -1,4 +1,4 @@
-import React from 'react'
+import React, {useState, useEffect} from 'react'
 import 
 { BsFillArchiveFill, BsFillGrid3X3GapFill, BsPeopleFill, BsFillBellFill}
  from 'react-icons/bs'
@@ -12,12 +12,13 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import axios from 'axios';
 import Iconify from '../components/iconify';
 import Scrollbar from '../components/scrollbar';
 
 
 function Home() {
-
+  const [count, setCount] = useState({ totalUsers: 0, totalCars: 0, totalCategories: 0 });
     const data = [
         {
           name: 'Page A',
@@ -63,7 +64,19 @@ function Home() {
         },
       ];
      
-
+  useEffect(() => {
+        const fetchData = async () => {
+          try {
+            const response = await axios.get('http://localhost:5000/countAll');
+            const { totalUsers, totalCars, totalCategories } = response.data;
+            setCount({ totalUsers, totalCars, totalCategories });
+          } catch (error) {
+            console.error('Lỗi khi lấy thông tin thống kê:', error);
+          }
+        };
+    
+        fetchData();
+      }, []);
   return (
     <>
       <Helmet>
@@ -78,28 +91,28 @@ function Home() {
         <div className='main-cards'>
             <div className='card'>
                 <div className='card-inner'>
-                    <h3>PRODUCTS</h3>
+                    <h3>Tổng Xe</h3>
                     <BsFillArchiveFill className='card_icon'/>
                 </div>
-                <h1>300</h1>
+                <h1>{count.totalCars}</h1>
             </div>
             <div className='card'>
                 <div className='card-inner'>
-                    <h3>CATEGORIES</h3>
+                    <h3>Tổng Danh Mục</h3>
                     <BsFillGrid3X3GapFill className='card_icon'/>
                 </div>
-                <h1>12</h1>
+                <h1>{count.totalCategories}</h1>
             </div>
             <div className='card'>
                 <div className='card-inner'>
-                    <h3>CUSTOMERS</h3>
+                    <h3>Tổng Người Dùng</h3>
                     <BsPeopleFill className='card_icon'/>
                 </div>
-                <h1>33</h1>
+                <h1>{count.totalUsers}</h1>
             </div>
             <div className='card'>
                 <div className='card-inner'>
-                    <h3>ALERTS</h3>
+                    <h3>Tổng Đơn Báo Cáo</h3>
                     <BsFillBellFill className='card_icon'/>
                 </div>
                 <h1>42</h1>
