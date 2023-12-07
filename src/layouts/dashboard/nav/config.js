@@ -36,6 +36,12 @@ const navConfig = [
     path: '/dashboard/bill',
     icon: icon('ic_blog'),
   }
+  ,
+  {
+    title: 'Khách Hàng',
+    path: '/dashboard/customer',
+    icon: icon('ic_blog'),
+  }
 ];
 
 export default navConfig;

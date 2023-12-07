@@ -11,7 +11,7 @@ import ProductsPage from './pages/ProductsPage';
 import DashboardAppPage from './pages/DashboardAppPage';
 import  Category from './pages/Category';
 import Bill from './pages/Bill'
-
+import CustomerPage from './pages/CustomerPage';
 // ----------------------------------------------------------------------
 
 export default function Router() {
@@ -27,6 +27,7 @@ export default function Router() {
         { path: 'blog', element: <BlogPage /> },
         { path: 'category', element: <Category /> },
         { path: 'bill', element: <Bill /> },
+        { path: 'customer', element: <CustomerPage /> },
       ],
     },
     {

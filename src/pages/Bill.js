@@ -4,7 +4,6 @@ import { filter } from 'lodash';
 import { useState, useEffect } from 'react';
 // @mui
 import {
-  Card,
   Table,
   Stack,
   Paper,
@@ -28,7 +27,6 @@ import {
   TablePagination,
 } from '@mui/material';
 // components
-import Label from '../components/label';
 import Iconify from '../components/iconify';
 import Scrollbar from '../components/scrollbar';
 // sections
@@ -78,7 +76,8 @@ function applySortFilter(array, comparator, query) {
 }
 
 export default function BillsPage() {
-  const [bills, setBills] = useState([]);
+  const [bills, setBills] = useState([]); 
+
   const [page, setPage] = useState(0);
 
   const [order, setOrder] = useState('asc');
@@ -88,7 +87,8 @@ export default function BillsPage() {
   const [orderBy, setOrderBy] = useState('name');
 
   const [filterName, setFilterName] = useState('');
-
+  // HANDLE UPLOAD 
+  const [openAddDialog, setOpenAddDialog] = useState(false);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [billData, setBillData] = useState({
     car: '',
@@ -137,8 +137,7 @@ export default function BillsPage() {
   const handleChangeRowsPerPage = (event) => {
     setPage(0);
     setRowsPerPage(parseInt(event.target.value, 10));
-  };
-
+  }
 
   const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - bills.length) : 0;
 
@@ -154,8 +153,7 @@ export default function BillsPage() {
     }));
   };
 
-  // HANDLE UPLOAD 
-const [openAddDialog, setOpenAddDialog] = useState(false);
+
 
 const handleOpenAddDialog = () => {
   setOpenAddDialog(true);

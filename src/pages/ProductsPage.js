@@ -7,7 +7,8 @@ import './css/productspage.css';
 // @mui
 import {
   Card,
-  Table,
+  Table,  
+InputLabel,
   Stack,
   Paper,
   Avatar,
@@ -20,6 +21,7 @@ import {
   TableCell,
   Container,
   Typography,
+  Select,
   TableContainer,
   Dialog,
   TextField,
@@ -335,16 +337,16 @@ export default function ProductsPage() {
         errors.chair = 'Vui lòng nhập số ghế.';
       }
       if (!carData.imagePath || carData.imagePath.trim() === '') {
-        errors.imagePath = 'Vui lòng nhập URL hình ảnh.';
+        errors.imagePath = 'Vui lòng thêm hình ảnh.';
       }
       if (!carData.image1 || carData.image1.trim() === '') {
-        errors.image1 = 'Vui lòng nhập URL hình ảnh.';
+        errors.image1 = 'Vui lòng thêm hình ảnh.';
       }
       if (!carData.image2 || carData.image2.trim() === '') {
-        errors.image2 = 'Vui lòng nhập URL hình ảnh.';
+        errors.image2 = 'Vui lòng thêm hình ảnh.';
       }
       if (!carData.image3 || carData.image3.trim() === '') {
-        errors.image3 = 'Vui lòng nhập URL hình ảnh.';
+        errors.image3 = 'Vui lòng thêm hình ảnh.';
       }
       if (!carData.fuel || carData.fuel.trim() === '') {
         errors.fuel = 'Vui lòng nhập nguyên liệu.';
@@ -439,6 +441,7 @@ export default function ProductsPage() {
                   type="file"
                   name="imagePath"
                   accept="image/*"
+                  value={carData.imagePath}
                   onChange={handleCarInputChange}
                 />
               </Grid>
@@ -447,6 +450,7 @@ export default function ProductsPage() {
                   type="file"
                   name="image1"
                   accept="image/*"
+                  value={carData.image1}
                   onChange={handleCarInputChange}
                 />
                 
@@ -456,6 +460,7 @@ export default function ProductsPage() {
                   type="file"
                   name="image2"
                   accept="image/*"
+                  value={carData.image2}
                   onChange={handleCarInputChange}
                 />
               </Grid>
@@ -464,6 +469,7 @@ export default function ProductsPage() {
                   type="file"
                   name="image3"
                   accept="image/*"
+                  value={carData.image3}
                   onChange={handleCarInputChange}
                 />
               </Grid>
@@ -501,15 +507,19 @@ export default function ProductsPage() {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
+              <InputLabel id="date-label">Nhiên Liệu Sử Dụng
+              </InputLabel>
+                <Select
                   fullWidth
-                  label="Nhiên Liệu Sử Dụng"
                   name="fuel"
                   value={carData.fuel}
                   onChange={handleCarInputChange}
                   error={!!addCarErrors.fuel}
                   helperText={addCarErrors.fuel}
-                />
+                >
+<MenuItem value="Xăng">Xăng</MenuItem>
+                  <MenuItem value="waiting">Điện</MenuItem>
+                  </Select>
               </Grid>
             </Grid>
           </DialogContent>

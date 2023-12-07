@@ -37,7 +37,7 @@ import Scrollbar from '../components/scrollbar';
 import { UserListHead } from '../sections/@dashboard/user';
 
 const TABLE_HEAD = [
-  { id: 'name', label: 'Tên', alignRight: false },
+  { id: 'fullName', label: 'Tên', alignRight: false },
   { id: 'location', label: 'Địa chỉ', alignRight: false },
   { id: 'email', label: 'Email', alignRight: false },
   { id: 'phoneNumber', label: 'Số điện thoại', alignRight: false },
