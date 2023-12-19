@@ -89,17 +89,25 @@ export default function ProductsPage() {
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [selectedCategoryIdToDelete, setSelectedCategoryIdToDelete] = useState(null);
 
-
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
   const [newCategoryData, setNewCategoryData] = useState({
     model: '',
-    imageCategory: '',
+    imageCategory: null,
   });
   const [newCategoryErrors, setNewCategoryErrors] = useState({
     model: '',
     imageCategory: '',
   });
+  const getCategories = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/all-category');
+        const categoriesData = response.data.categories;
+        setCategories(categoriesData);
+      } catch (error){
+        console.error('Lỗi:', error);
+      };
+    }
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const handleOpenAddDialog = () => {
     setOpenAddDialog(true);
@@ -110,23 +118,30 @@ export default function ProductsPage() {
       if (!newCategoryData.model || newCategoryData.model.trim() === '') {
         errors.model = 'Vui lòng nhập tên danh mục.';
       }
-      if (!newCategoryData.imageCategory || newCategoryData.imageCategory.trim() === '') {
-        errors.imageCategory = 'Vui lòng nhập URL Hình Ảnh.';
+      if (!newCategoryData.imageCategory) {
+        errors.imageCategory = 'Vui lòng chọn hình ảnh.';
       }
       if (Object.keys(errors).length > 0) {
         setNewCategoryErrors(errors);
         return;
       }
-  
+
+      const formData = new FormData();
+      formData.append('model', newCategoryData.model);
+      formData.append('imageCategory', newCategoryData.imageCategory);
+
       const accessToken = localStorage.getItem('accessToken');
-      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
-  
-      const response = await axios.post('http://localhost:5000/add-category', newCategoryData, { headers });
-  
+      const headers = {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'multipart/form-data',
+      };
+
+      const response = await axios.post('http://localhost:5000/add-category', formData, { headers });
+
       if (response.data.success) {
         window.location.reload();
-        console.log('Thêm danh mục thành công:', response.data.category);
         setOpenAddDialog(false);
+        setNewCategoryData({ model: '', imageCategory: null });
         setCategories([...categories, response.data.category]);
       }
     } catch (error) {
@@ -134,28 +149,28 @@ export default function ProductsPage() {
     }
   };
 
-  
   const handleDeleteCategory = async () => {
     try {
       const accessToken = localStorage.getItem('accessToken');
       const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
       if (selectedCategoryIdToDelete) {
-        const response = await axios.put(`http://localhost:5000/delete-category/${selectedCategoryIdToDelete}`, null, { headers });
+        const response = await axios.put(`http://localhost:5000/delete-category/${selectedCategoryIdToDelete}`, null, {
+          headers,
+        });
 
         if (response.data.success) {
-          window.location.reload();
+          getCategories();
           console.log('Đã xóa danh mục thành công');
           handleCloseConfirmDialog();
         }
       }
     } catch (error) {
       console.error('Lỗi khi xóa danh mục:', error);
-     
     }
   };
 
   const handleDeleteButtonClick = (categoryId) => {
-    setSelectedCategoryIdToDelete(categoryId); 
+    setSelectedCategoryIdToDelete(categoryId);
     setOpenConfirmDialog(true);
   };
 
@@ -214,7 +229,7 @@ export default function ProductsPage() {
       if (response.data.success) {
         console.log('Cập nhật danh mục thành công:', response.data.category);
         setOpenEditDialog(false);
-        window.location.reload();
+        getCategories();
       }
     } catch (error) {
       console.error('Lỗi khi cập nhật danh mục:', error);
@@ -265,23 +280,18 @@ export default function ProductsPage() {
 
   const isNotFound = !filteredCategories.length && !!filterName;
 
-  useEffect(() => {
-    axios
-      .get('http://localhost:5000/all-category')
-      .then((response) => {
-        const categoriesData = response.data.categories;
-        setCategories(categoriesData);
-      })
-      .catch((error) => {
-        console.error('Lỗi:', error);
-      });
-  }, []);
+  
+useEffect(() => {
+  getCategories();
+}, []);
   if (!isAdmin) {
     return (
       <div>
-        <h1 style={{textAlign: 'center'}}>Bạn không phải là Quản trị viên.</h1>
-        <p style={{textAlign: 'center'}}>Nếu là Quản trị viên vui lòng đăng nhập để tiếp tục.</p>
-        <Link to="/login-admin" replace style={{textAlign: 'center', textDecoration: 'none'}}>Đăng Nhập</Link>
+        <h1 style={{ textAlign: 'center' }}>Bạn không phải là Quản trị viên.</h1>
+        <p style={{ textAlign: 'center' }}>Nếu là Quản trị viên vui lòng đăng nhập để tiếp tục.</p>
+        <Link to="/login-admin" replace style={{ textAlign: 'center', textDecoration: 'none' }}>
+          Đăng Nhập
+        </Link>
       </div>
     );
   }
@@ -301,40 +311,44 @@ export default function ProductsPage() {
           </Button>
         </Stack>
         <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)}>
-  <DialogTitle>Thêm Danh Mục</DialogTitle>
-  <DialogContent>
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="Tên Danh Mục"
-          name="model"
-          value={newCategoryData.model}
-          onChange={(e) => setNewCategoryData({ ...newCategoryData, model: e.target.value })}
-          error={!!newCategoryErrors.model}
-          helperText={newCategoryErrors.model}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="URL Hình Ảnh"
-          name="imageCategory"
-          value={newCategoryData.imageCategory}
-          onChange={(e) => setNewCategoryData({ ...newCategoryData, imageCategory: e.target.value })}
-          error={!!newCategoryErrors.imageCategory}
-          helperText={newCategoryErrors.imageCategory}
-        />
-      </Grid>
-    </Grid>
-  </DialogContent>
-  <DialogActions>
-    <Button onClick={() => setOpenAddDialog(false)}>Hủy</Button>
-    <Button onClick={handleAddCategory} color="primary">
-      Thêm
-    </Button>
-  </DialogActions>
-</Dialog>
+          <DialogTitle>Thêm Danh Mục</DialogTitle> <br />
+          <DialogContent>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Tên Danh Mục"
+                  name="model"
+                  value={newCategoryData.model}
+                  onChange={(e) => setNewCategoryData({ ...newCategoryData, model: e.target.value })}
+                  error={!!newCategoryErrors.model}
+                  helperText={newCategoryErrors.model}
+                />
+              </Grid>
+              <br />
+              <Grid item xs={12}>
+                <Label>Ảnh Danh Mục</Label>
+                <br />
+                <br />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    setNewCategoryData({ ...newCategoryData, imageCategory: file });
+                  }}
+                />
+                {newCategoryErrors.imageCategory && <p style={{ color: 'red' }}>{newCategoryErrors.imageCategory}</p>}
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenAddDialog(false)}>Hủy</Button>
+            <Button onClick={handleAddCategory} color="primary">
+              Thêm
+            </Button>
+          </DialogActions>
+        </Dialog>
         <Card>
           <Scrollbar>
             <TableContainer sx={{ minWidth: 800 }}>
@@ -371,13 +385,15 @@ export default function ProductsPage() {
                           <MenuItem onClick={() => handleOpenEditDialog(category._id)}>
                             <Stack direction="column" alignItems="center">
                               <Iconify icon={'eva:edit-fill'} sx={{ mb: 1 }} />
-                              <Typography variant="body2">
-                                Chỉnh sửa
-                              </Typography>
+                              <Typography variant="body2">Chỉnh sửa</Typography>
                             </Stack>
                           </MenuItem>
 
-                          <MenuItem sx={{ color: 'error.main' }} variant="subtitle2"  onClick={() => handleDeleteButtonClick(category._id)}>
+                          <MenuItem
+                            sx={{ color: 'error.main' }}
+                            variant="subtitle2"
+                            onClick={() => handleDeleteButtonClick(category._id)}
+                          >
                             <Stack direction="column" alignItems="center">
                               <Iconify icon={'eva:trash-2-outline'} sx={{ mb: 1 }} />
                               <Typography variant="body2" noWrap>
@@ -468,7 +484,6 @@ export default function ProductsPage() {
         <DialogContent>
           <br />
           {selectedCategoryIdToEdit !== null && (
-
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <TextField
@@ -505,9 +520,7 @@ export default function ProductsPage() {
       <Dialog open={openConfirmDialog} onClose={handleCloseConfirmDialog}>
         <DialogTitle>Xác nhận xóa danh mục</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Bạn có chắc chắn muốn xóa danh mục này không?
-          </DialogContentText>
+          <DialogContentText>Bạn có chắc chắn muốn xóa danh mục này không?</DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseConfirmDialog}>Hủy</Button>

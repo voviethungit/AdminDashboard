@@ -42,7 +42,6 @@ const TABLE_HEAD = [
   { id: 'location', label: 'Địa chỉ', alignRight: false },
   { id: 'email', label: 'Email', alignRight: false },
   { id: 'phoneNumber', label: 'Số điện thoại', alignRight: false },
-  { id: 'isVerified', label: 'Xác thực', alignRight: false },
   { id: 'status', label: 'Trạng thái', alignRight: false },
   { id: '', label: 'Hoạt động', alignRight: false },
 ];
@@ -100,7 +99,17 @@ export default function UserPage() {
   const [selectedUserId, setSelectedUserId] = useState(null);
 
   const [openConfirmation, setOpenConfirmation] = useState(false);
+  const getUsers = async () => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 
+      const response = await axios.get('http://localhost:5000/getAllUser', { headers });
+      setUsers(response.data.users);
+    } catch (err) {
+      console.error(err);
+    }
+  };
   const handleFileChange = (e) => {
     setEditUser({ ...editUser, avatar: e.target.files[0] });
   };
@@ -282,8 +291,9 @@ export default function UserPage() {
       if (confirmBan) {
         setOpenConfirmation(true);
         await axios.put(`http://localhost:5000/delete-user/${userId}`, null, { headers });
-        window.location.reload();
+        getUsers();
       }
+      setOpenConfirmation(false);
     } catch (error) {
       console.error('Error banning user:', error);
     }
@@ -311,7 +321,8 @@ export default function UserPage() {
       });
 
       if (response.data.success) {
-        window.location.reload();
+        setOpenEditDialog(false)
+        getUsers();
         console.log('Thông tin người dùng đã được cập nhật:', response.data.user);
       }
     } catch (error) {
@@ -326,7 +337,7 @@ export default function UserPage() {
       const response = await axios.put(`http://localhost:5000/unban-user/${userId}`, null, { headers });
   
       if (response.data.success) {
-        window.location.reload();
+        getUsers();
         console.log('User đã được mở cấm:', response.data.user);
       }
     } catch (error) {
@@ -335,21 +346,7 @@ export default function UserPage() {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const accessToken = localStorage.getItem('accessToken');
-
-        const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
-
-        const response = await axios.get('http://localhost:5000/getAllUser', { headers });
-
-        setUsers(response.data.users);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    fetchData();
+    getUsers();
   }, []);
   const handleFilterByName = (event) => {
     setPage(0);
@@ -412,7 +409,6 @@ export default function UserPage() {
                       <TableCell align="left">{user.location}</TableCell>
                       <TableCell align="left">{user.email}</TableCell>
                       <TableCell align="left">0{user.phoneNumber}</TableCell>
-                      <TableCell align="left">{user.isVerified}</TableCell>
                       <TableCell align="left">
                         <Label color={(user.status === 'banned' && 'error') || 'success'}>
                           {sentenceCase(user.status)}

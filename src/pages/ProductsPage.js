@@ -201,6 +201,15 @@ export default function ProductsPage() {
       [name]: value,
     }));
   };
+  const fetchCars = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/get-car');
+      const carsData = response.data.cars;
+      setCars(carsData);
+    } catch (error) {
+      console.error('Lỗi:', error);
+    }
+  };
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     setEditCar((prevEditCar) => ({
@@ -263,7 +272,9 @@ export default function ProductsPage() {
       if (response.data.success) {
         console.log('Xóa xe thành công:', response.data.car);
         setDeleteCarId(null);
-        window.location.reload();
+        setOpen(null);
+        fetchCars();
+        
       }
     } catch (error) {
       console.error('Lỗi khi xóa xe:', error);
@@ -289,6 +300,7 @@ export default function ProductsPage() {
       formData.append('image1', editCar.image1);
       formData.append('image2', editCar.image2);
       formData.append('image3', editCar.image3);
+      formData.append('fuel', editCar.fuel);
       const accessToken = localStorage.getItem('accessToken');
       const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 
@@ -301,8 +313,7 @@ export default function ProductsPage() {
 
       if (response.data.success) {
         setOpenEditDialog(false);
-        console.log('Thông tin xe đã được cập nhật:', response.data.car);
-        window.location.reload();
+        fetchCars();
       }
     } catch (error) {
       console.error('Lỗi khi cập nhật thông tin xe:', error);
@@ -329,6 +340,7 @@ export default function ProductsPage() {
       });
       const deletedCarsData = response.data.deletedCars;
       setDeletedCars(deletedCarsData);
+      
     } catch (error) {
       console.error('Error fetching deleted cars:', error);
     }
@@ -344,15 +356,6 @@ export default function ProductsPage() {
     setOpenDeletedCarsModal(false);
   };
   useEffect(() => {
-    const fetchCars = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/get-car');
-        const carsData = response.data.cars;
-        setCars(carsData);
-      } catch (error) {
-        console.error('Lỗi:', error);
-      }
-    };
 
     fetchCars();
   }, []);
@@ -409,8 +412,10 @@ export default function ProductsPage() {
       });
 
       if (response.data.success) {
+        
         console.log('Xe đã được thêm thành công:', response.data.car);
         handleCloseAddDialog();
+        fetchCars();
       } else {
         console.error('Lỗi khi thêm xe:', response.data.message);
       }
@@ -430,6 +435,7 @@ export default function ProductsPage() {
       if (response.data.success) {
         const updatedDeletedCars = deletedCars.filter((deletedCar) => deletedCar._id !== carId);
         setDeletedCars(updatedDeletedCars);
+        fetchCars();
       } else {
         console.error('Lỗi khi khôi phục xe:', response.data.message);
       }
@@ -659,7 +665,7 @@ export default function ProductsPage() {
                   helperText={addCarErrors.fuel}
                 >
                   <MenuItem value="Xăng">Xăng</MenuItem>
-                  <MenuItem value="waiting">Điện</MenuItem>
+                  <MenuItem value="Điện">Điện</MenuItem>
                 </Select>
               </Grid>
             </Grid>
@@ -842,8 +848,8 @@ export default function ProductsPage() {
                   name="categoryID"
                   value={carData.categoryID}
                   onChange={handleCarInputChange}
-                  error={!!addCarErrors.categoryID}
-                  helperText={addCarErrors.categoryID}
+                  error={!!formErrors.categoryID}
+                  helperText={formErrors.categoryID}
                 >
                   <MenuItem value="6564aecee1a105afe2dfbf2d">Quận Liên Chiểu</MenuItem>
                   <MenuItem value="6564aed5e1a105afe2dfbf30">Quận Sơn Trà</MenuItem>
@@ -899,6 +905,20 @@ export default function ProductsPage() {
                   error={!!formErrors.chair}
                   helperText={formErrors.chair}
                 />
+              </Grid>
+              <Grid item xs={12}>
+                <InputLabel id="date-label">Nhiên Liệu Sử Dụng</InputLabel>
+                <Select
+                  fullWidth
+                  name="fuel"
+                  value={editCar.fuel}
+                  onChange={handleCarInputChange}
+                  error={!!formErrors.fuel}
+                  helperText={formErrors.fuel}
+                >
+                  <MenuItem value="Xăng">Xăng</MenuItem>
+                  <MenuItem value="Điện">Điện</MenuItem>
+                </Select>
               </Grid>
               <Grid item xs={12}>
                 {/* Input để chọn file ảnh cho 'image1' */}

@@ -7,11 +7,12 @@ import axios from 'axios';
 import {
   Card,
   Table,
+  InputLabel,
   Stack,
   Paper,
   Avatar,
-  Button,
   Popover,
+  Grid,
   Checkbox,
   TableRow,
   MenuItem,
@@ -19,9 +20,16 @@ import {
   TableCell,
   Container,
   Typography,
-  IconButton,
+  Select,
   TableContainer,
+  Dialog,
+  TextField,
+  DialogActions,
+  Button,
+  DialogContent,
+  DialogTitle,
   TablePagination,
+  Menu,
 } from '@mui/material';
 // components
 import { Link } from 'react-router-dom';
@@ -82,9 +90,10 @@ export default function ReviewPage() {
   const [selected, setSelected] = useState([]);
 
   const [orderBy, setOrderBy] = useState('name');
-
+  const [deleteReview, setDeleteReview] = useState(null);
   const [filterName, setFilterName] = useState('');
-
+  const [openPopover, setOpenPopover] = useState(null);
+  const [openDialog, setOpenDialog] = useState(false);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [expandedReviews, setExpandedReviews] = useState([]);
 
@@ -112,6 +121,25 @@ export default function ReviewPage() {
   useEffect(() => {
     getReviews();
   }, []);
+  const handleConfirmDelete = async () => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+
+      const response = await axios.put(`http://localhost:5000/delete-reviews/${deleteReview}`, null, {
+        headers,
+      });
+
+      if (response.data.success) {
+        setDeleteReview(null);
+        setOpenDialog(false);
+        getReviews();
+       console.log(response.data);
+      }
+    } catch (error) {
+      console.error('Lỗi khi xóa bình luận:', error);
+    }
+  };
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
@@ -164,9 +192,11 @@ export default function ReviewPage() {
   if (!isAdmin) {
     return (
       <div>
-        <h1 style={{textAlign: 'center'}}>Bạn không phải là Quản trị viên.</h1>
-        <p style={{textAlign: 'center'}}>Nếu là Quản trị viên vui lòng đăng nhập để tiếp tục.</p>
-        <Link to="/login-admin" replace style={{textAlign: 'center', textDecoration: 'none'}}>Đăng Nhập</Link>
+        <h1 style={{ textAlign: 'center' }}>Bạn không phải là Quản trị viên.</h1>
+        <p style={{ textAlign: 'center' }}>Nếu là Quản trị viên vui lòng đăng nhập để tiếp tục.</p>
+        <Link to="/login-admin" replace style={{ textAlign: 'center', textDecoration: 'none' }}>
+          Đăng Nhập
+        </Link>
       </div>
     );
   }
@@ -223,8 +253,8 @@ export default function ReviewPage() {
                       <TableCell align="left">
                         {expandedReviews[index] || review.reviewText.length < 50 ? (
                           <>
-                            {review.reviewText} 
-                            {review.reviewText.length > 50 && ( 
+                            {review.reviewText}
+                            {review.reviewText.length > 50 && (
                               <Button onClick={() => handleExpand(index)}>Thu gọn</Button>
                             )}
                           </>
@@ -236,7 +266,13 @@ export default function ReviewPage() {
                         )}
                       </TableCell>
 
-                      <MenuItem sx={{ color: 'error.main' }} variant="subtitle2">
+                      <MenuItem
+                        sx={{ color: 'error.main' }}
+                        onClick={() => {
+                          setDeleteReview(review._id);
+                          setOpenDialog(true);
+                        }}
+                      >
                         <Stack direction="column" alignItems="center">
                           <Iconify icon={'eva:trash-2-outline'} sx={{ mb: 1 }} />
                           <Typography variant="body2">Xóa</Typography>
@@ -318,6 +354,18 @@ export default function ReviewPage() {
           Delete
         </MenuItem>
       </Popover>
+      <Dialog open={openDialog} onClose={handleCloseMenu}>
+        <DialogTitle>Xác nhận xóa</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">Bạn có chắc chắn muốn xóa bình luận này không?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseMenu}>Hủy</Button>
+          <Button onClick={handleConfirmDelete} color="error">
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
