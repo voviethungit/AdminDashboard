@@ -33,13 +33,19 @@ const navConfig = [
   },
   {
     title: 'Hóa Đơn',
-    path: '/dashboard/bill',
+    path: '/dashboard/rental',
     icon: icon('ic_blog'),
   }
   ,
   {
     title: 'Khách Hàng',
     path: '/dashboard/customer',
+    icon: icon('ic_blog'),
+  }
+  ,
+  {
+    title: 'Đánh Giá',
+    path: '/dashboard/review',
     icon: icon('ic_blog'),
   }
 ];

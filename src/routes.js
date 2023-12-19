@@ -10,11 +10,14 @@ import Page404 from './pages/Page404';
 import ProductsPage from './pages/ProductsPage';
 import DashboardAppPage from './pages/DashboardAppPage';
 import  Category from './pages/Category';
-import Bill from './pages/Bill'
+import RentalPage from './pages/RentalPage'
 import CustomerPage from './pages/CustomerPage';
+import ReviewPage from './pages/ReviewPage';
 // ----------------------------------------------------------------------
 
 export default function Router() {
+  const isAdmin = localStorage.getItem('isAdmin');
+  
   const routes = useRoutes([
     {
       path: '/dashboard',
@@ -26,12 +29,13 @@ export default function Router() {
         { path: 'products', element: <ProductsPage /> },
         { path: 'blog', element: <BlogPage /> },
         { path: 'category', element: <Category /> },
-        { path: 'bill', element: <Bill /> },
+        { path: 'rental', element: <RentalPage /> },
         { path: 'customer', element: <CustomerPage /> },
+        { path: 'review', element: <ReviewPage /> },
       ],
     },
     {
-      path: 'login',
+      path: 'login-admin',
       element: <LoginPage />,
     },
     {
@@ -47,6 +51,6 @@ export default function Router() {
       element: <Navigate to="/404" replace />,
     },
   ]);
-
+  
   return routes;
 }

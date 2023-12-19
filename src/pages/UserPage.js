@@ -29,12 +29,13 @@ import {
   TablePagination,
 } from '@mui/material';
 // components
+import { Link } from 'react-router-dom';
 import Label from '../components/label';
 import Iconify from '../components/iconify';
 import Scrollbar from '../components/scrollbar';
 
 // sections
-import { UserListHead } from '../sections/@dashboard/user';
+import { UserListHead, UserListToolbar } from '../sections/@dashboard/user';
 
 const TABLE_HEAD = [
   { id: 'fullName', label: 'Tên', alignRight: false },
@@ -72,7 +73,7 @@ function applySortFilter(array, comparator, query) {
     return a[1] - b[1];
   });
   if (query) {
-    return filter(array, (_user) => _user.name.toLowerCase().indexOf(query.toLowerCase()) !== -1);
+    return filter(array, (user) => user.fullName.toLowerCase().indexOf(query.toLowerCase()) !== -1);
   }
   return stabilizedThis.map((el) => el[0]);
 }
@@ -82,7 +83,7 @@ export default function UserPage() {
   const [users, setUsers] = useState([]);
 
   const [page, setPage] = useState(0);
-
+  const isAdmin = localStorage.getItem('isAdmin');
   const [order, setOrder] = useState('asc');
   const [errors, setErrors] = useState({});
   const [selected, setSelected] = useState([]);
@@ -295,6 +296,11 @@ export default function UserPage() {
       }
       const formData = new FormData();
       formData.append("image", editUser.avatar);
+      formData.append("fullName", editUser.fullName);
+      formData.append("email", editUser.email);
+      formData.append("location", editUser.location);
+      formData.append("birthDay", editUser.birthDay);
+      formData.append("linkFB", editUser.linkFB);
       const accessToken = localStorage.getItem('accessToken');
 
       const response = await axios.put(`http://localhost:5000/edit-user/${userId}`, formData,  {
@@ -310,6 +316,21 @@ export default function UserPage() {
       }
     } catch (error) {
       console.error('Lỗi khi cập nhật thông tin người dùng:', error);
+    }
+  };
+  const handleUnbanUser = async (userId) => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+  
+      const response = await axios.put(`http://localhost:5000/unban-user/${userId}`, null, { headers });
+  
+      if (response.data.success) {
+        window.location.reload();
+        console.log('User đã được mở cấm:', response.data.user);
+      }
+    } catch (error) {
+      console.error('Lỗi khi mở cấm user:', error);
     }
   };
 
@@ -330,7 +351,19 @@ export default function UserPage() {
 
     fetchData();
   }, []);
-
+  const handleFilterByName = (event) => {
+    setPage(0);
+    setFilterName(event.target.value);
+  };
+  if (!isAdmin) {
+    return (
+      <div>
+        <h1 style={{textAlign: 'center'}}>Bạn không phải là Quản trị viên.</h1>
+        <p style={{textAlign: 'center'}}>Nếu là Quản trị viên vui lòng đăng nhập để tiếp tục.</p>
+        <Link to="/login-admin" replace style={{textAlign: 'center', textDecoration: 'none'}}>Đăng Nhập</Link>
+      </div>
+    );
+  }
   return (
     <>
       <Helmet>
@@ -345,6 +378,7 @@ export default function UserPage() {
         </Stack>
 
         <Card>
+        <UserListToolbar numSelected={selected.length} filterName={filterName} onFilterName={handleFilterByName} />
           <Scrollbar>
             <TableContainer sx={{ minWidth: 800 }}>
               <Table>
@@ -395,7 +429,7 @@ export default function UserPage() {
                             <Stack direction="column" alignItems="center">
                               <Iconify icon={'eva:edit-fill'} sx={{ mb: 1 }} />
                               <Typography variant="body2" noWrap>
-                                Edit
+                                Sửa
                               </Typography>
                             </Stack>
                           </MenuItem>
@@ -409,7 +443,19 @@ export default function UserPage() {
                             <Stack direction="column" alignItems="center">
                               <Iconify icon={'eva:trash-2-outline'} sx={{ mb: 1 }} />
                               <Typography variant="body2" noWrap>
-                                Banned
+                                Cấm
+                              </Typography>
+                            </Stack>
+                          </MenuItem>
+                          <MenuItem
+                            sx={{ color: 'primary.main' }}
+                            variant="subtitle2"
+                            onClick={() => handleUnbanUser(user._id)}
+                          >
+                            <Stack direction="column" alignItems="center">
+                              <Iconify icon={'eva:trash-2-outline'} sx={{ mb: 1 }} />
+                              <Typography variant="body2" noWrap>
+                                Mở Cấm
                               </Typography>
                             </Stack>
                           </MenuItem>

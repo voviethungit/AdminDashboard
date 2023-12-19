@@ -7,8 +7,8 @@ import './css/productspage.css';
 // @mui
 import {
   Card,
-  Table,  
-InputLabel,
+  Table,
+  InputLabel,
   Stack,
   Paper,
   Avatar,
@@ -30,22 +30,22 @@ InputLabel,
   DialogContent,
   DialogTitle,
   TablePagination,
+  Menu,
 } from '@mui/material';
 // components
 import Label from '../components/label';
 import Iconify from '../components/iconify';
 import Scrollbar from '../components/scrollbar';
 // sections
-import { UserListHead } from '../sections/@dashboard/user';
+import { UserListHead, UserListToolbar } from '../sections/@dashboard/user';
 
 const TABLE_HEAD = [
   { id: 'title', label: 'Tên xe', alignRight: false },
-  { id: 'categoryID', label: 'Danh Mục', alignRight: false },
   { id: 'location', label: 'Địa chỉ', alignRight: false },
   { id: 'description', label: 'Mô tả', alignRight: false },
   { id: 'price', label: 'Giá', alignRight: false },
   { id: 'chair', label: 'Số ghế', alignRight: false },
-  { id: 'star', label: 'Đánh giá', alignRight: false },
+  { id: 'fuel', label: 'Nhiên Liệu', alignRight: false },
   { id: '', label: 'Hoạt động', alignRight: false },
 ];
 
@@ -75,7 +75,7 @@ function applySortFilter(array, comparator, query) {
     return a[1] - b[1];
   });
   if (query) {
-    return filter(array, (_user) => _user.name.toLowerCase().indexOf(query.toLowerCase()) !== -1);
+    return filter(array, (car) => car.title.toLowerCase().indexOf(query.toLowerCase()) !== -1);
   }
   return stabilizedThis.map((el) => el[0]);
 }
@@ -84,11 +84,12 @@ export default function ProductsPage() {
   const [open, setOpen] = useState(null);
   const [cars, setCars] = useState([]);
   const [page, setPage] = useState(0);
-
+  const [deletedCars, setDeletedCars] = useState([]);
+  const [openDeletedCarsModal, setOpenDeletedCarsModal] = useState(false);
   const [order, setOrder] = useState('asc');
 
   const [selected, setSelected] = useState([]);
-
+  const isAdmin = localStorage.getItem('isAdmin');
   const [orderBy, setOrderBy] = useState('name');
   const [deleteCarId, setDeleteCarId] = useState(null);
   const [filterName, setFilterName] = useState('');
@@ -185,20 +186,13 @@ export default function ProductsPage() {
     fuel: '',
     chair: '',
   });
-
-  const [updatedData, setUpdatedDate] = useState({
-    title: '',
-    description: '',
-    price: '',
-    location: '',
-    imagePath: '',
-    image1: '',
-    image2: '',
-    categoryID: '',
-    image3: '',
-    fuel: '',
-    chair: '',
-  });
+  const handleFileInputChange = (event, fieldName) => {
+    const file = event.target.files[0];
+    setEditCar((prevState) => ({
+      ...prevState,
+      [fieldName]: file,
+    }));
+  };
 
   const handleCarInputChange = (event) => {
     const { name, value } = event.target;
@@ -284,11 +278,25 @@ export default function ProductsPage() {
       return;
     }
     try {
+      const formData = new FormData();
+
+      formData.append('title', editCar.title);
+      formData.append('categoryID', editCar.categoryID);
+      formData.append('price', editCar.price);
+      formData.append('description', editCar.description);
+      formData.append('location', editCar.location);
+      formData.append('imagePath', editCar.imagePath);
+      formData.append('image1', editCar.image1);
+      formData.append('image2', editCar.image2);
+      formData.append('image3', editCar.image3);
       const accessToken = localStorage.getItem('accessToken');
       const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 
-      const response = await axios.put(`http://localhost:5000/update-car/${carId}`, editCar, {
-        headers,
+      const response = await axios.put(`http://localhost:5000/update-car/${carId}`, formData, {
+        headers: {
+          ...headers,
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       if (response.data.success) {
@@ -312,6 +320,42 @@ export default function ProductsPage() {
     setOpenAddDialog(false);
   };
 
+  const fetchDeletedCars = async () => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+      const response = await axios.get('http://localhost:5000/get-deleted-cars', {
+        headers,
+      });
+      const deletedCarsData = response.data.deletedCars;
+      setDeletedCars(deletedCarsData);
+    } catch (error) {
+      console.error('Error fetching deleted cars:', error);
+    }
+  };
+  const handleOpenDeletedCarsModal = () => {
+    setOpenDeletedCarsModal(true);
+    // Fetch deleted cars when the modal is opened
+    fetchDeletedCars();
+  };
+
+  // Function to close the modal displaying deleted cars
+  const handleCloseDeletedCarsModal = () => {
+    setOpenDeletedCarsModal(false);
+  };
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/get-car');
+        const carsData = response.data.cars;
+        setCars(carsData);
+      } catch (error) {
+        console.error('Lỗi:', error);
+      }
+    };
+
+    fetchCars();
+  }, []);
   const handleAddCar = async () => {
     try {
       const errors = {};
@@ -336,18 +380,6 @@ export default function ProductsPage() {
       if (!carData.chair || carData.chair.trim() === '') {
         errors.chair = 'Vui lòng nhập số ghế.';
       }
-      if (!carData.imagePath || carData.imagePath.trim() === '') {
-        errors.imagePath = 'Vui lòng thêm hình ảnh.';
-      }
-      if (!carData.image1 || carData.image1.trim() === '') {
-        errors.image1 = 'Vui lòng thêm hình ảnh.';
-      }
-      if (!carData.image2 || carData.image2.trim() === '') {
-        errors.image2 = 'Vui lòng thêm hình ảnh.';
-      }
-      if (!carData.image3 || carData.image3.trim() === '') {
-        errors.image3 = 'Vui lòng thêm hình ảnh.';
-      }
       if (!carData.fuel || carData.fuel.trim() === '') {
         errors.fuel = 'Vui lòng nhập nguyên liệu.';
       }
@@ -355,35 +387,71 @@ export default function ProductsPage() {
         setAddCarErrors(errors);
         return;
       }
-      const accessToken = localStorage.getItem('accessToken');
-      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 
-      const response = await axios.post('http://localhost:5000/upload-car', carData, {
-        headers,
+      const accessToken = localStorage.getItem('accessToken');
+      const formData = new FormData();
+      formData.append('title', carData.title);
+      formData.append('categoryID', carData.categoryID);
+      formData.append('description', carData.description);
+      formData.append('location', carData.location);
+      formData.append('price', carData.price);
+      formData.append('chair', carData.chair);
+      formData.append('fuel', carData.fuel);
+      formData.append('imagePath', carData.imagePathFile);
+      formData.append('image1', carData.image1File);
+      formData.append('image2', carData.image2File);
+      formData.append('image3', carData.image3File);
+      const response = await axios.post('http://localhost:5000/upload-car', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${accessToken}`,
+        },
       });
 
       if (response.data.success) {
-        window.location.reload();
-        console.log('Thêm xe thành công:', response.data.car);
+        console.log('Xe đã được thêm thành công:', response.data.car);
         handleCloseAddDialog();
+      } else {
+        console.error('Lỗi khi thêm xe:', response.data.message);
       }
     } catch (error) {
       console.error('Lỗi khi thêm xe:', error);
     }
   };
+  const handleRestoreCar = async (carId) => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 
-  useEffect(() => {
-    axios
-      .get('http://localhost:5000/get-car')
-      .then((response) => {
-        const carsData = response.data.cars;
-        setCars(carsData);
-      })
-      .catch((error) => {
-        console.error('Lỗi:', error);
+      const response = await axios.put(`http://localhost:5000/restore-car/${carId}`, null, {
+        headers,
       });
-  }, []);
 
+      if (response.data.success) {
+        const updatedDeletedCars = deletedCars.filter((deletedCar) => deletedCar._id !== carId);
+        setDeletedCars(updatedDeletedCars);
+      } else {
+        console.error('Lỗi khi khôi phục xe:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Lỗi khi gửi yêu cầu khôi phục xe:', error);
+    }
+  };
+  const handleFilterByName = (event) => {
+    setPage(0);
+    setFilterName(event.target.value);
+  };
+  if (!isAdmin) {
+    return (
+      <div>
+        <h1 style={{ textAlign: 'center' }}>Bạn không phải là Quản trị viên.</h1>
+        <p style={{ textAlign: 'center' }}>Nếu là Quản trị viên vui lòng đăng nhập để tiếp tục.</p>
+        <a href="/login-admin" style={{ textAlign: 'center', textDecoration: 'none' }}>
+          Đăng Nhập
+        </a>
+      </div>
+    );
+  }
   return (
     <>
       <Helmet>
@@ -395,10 +463,44 @@ export default function ProductsPage() {
           <Typography variant="h4" gutterBottom>
             Quản Lý Xe Thuê
           </Typography>
+
           <Button variant="contained" color="primary" onClick={handleOpenAddDialog}>
             Thêm Xe
           </Button>
         </Stack>
+        <Button variant="contained" color="primary" onClick={handleOpenDeletedCarsModal}>
+          Xe Đã Xóa
+        </Button>
+        <Dialog open={openDeletedCarsModal} onClose={handleCloseDeletedCarsModal}>
+          <DialogTitle>Xe Đã Xóa</DialogTitle>
+          <DialogContent>
+            <TableContainer>
+              <Table>
+                {/* Display deleted cars in a table */}
+                <TableBody>
+                  {deletedCars.map((deletedCar) => (
+                    <TableRow key={deletedCar._id}>
+                      <InputLabel htmlFor="title">Tên Xe</InputLabel>
+                      <TableCell>{deletedCar.title}</TableCell>
+                      <InputLabel htmlFor="imagePath">Ảnh Xe</InputLabel>
+                      <Avatar src={deletedCar.imagePath} />
+                      <TableCell>
+                        <Button onClick={() => handleRestoreCar(deletedCar._id)} variant="contained" color="primary">
+                          Khôi Phục
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDeletedCarsModal} color="primary">
+              Đóng
+            </Button>
+          </DialogActions>
+        </Dialog>
         <Dialog open={openAddDialog} onClose={handleCloseAddDialog}>
           <DialogTitle>Thêm Xe</DialogTitle>
           <DialogContent>
@@ -415,15 +517,21 @@ export default function ProductsPage() {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
+                <Select
                   fullWidth
-                  label="Danh Mục"
                   name="categoryID"
                   value={carData.categoryID}
                   onChange={handleCarInputChange}
                   error={!!addCarErrors.categoryID}
                   helperText={addCarErrors.categoryID}
-                />
+                >
+                  <MenuItem value="6564aecee1a105afe2dfbf2d">Quận Liên Chiểu</MenuItem>
+                  <MenuItem value="6564aed5e1a105afe2dfbf30">Quận Sơn Trà</MenuItem>
+                  <MenuItem value="6564aee6e1a105afe2dfbf39">Quận Cẩm Lệ</MenuItem>
+                  <MenuItem value="6564aef3e1a105afe2dfbf3c">Quận Ngũ Hành Sơn</MenuItem>
+                  <MenuItem value="6564aedbe1a105afe2dfbf33">Quận Hải Châu</MenuItem>
+                  <MenuItem value="6564aee0e1a105afe2dfbf36">Quận Thanh Khê</MenuItem>
+                </Select>
               </Grid>
               <Grid item xs={12}>
                 <TextField
@@ -437,40 +545,68 @@ export default function ProductsPage() {
                 />
               </Grid>
               <Grid item xs={12}>
+                <InputLabel htmlFor="imagePath">Hình ảnh chính</InputLabel>
                 <input
                   type="file"
+                  id="imagePath"
                   name="imagePath"
-                  accept="image/*"
-                  value={carData.imagePath}
-                  onChange={handleCarInputChange}
+                  onChange={(event) => {
+                    const file = event.target.files[0];
+                    setCarData((prevCarData) => ({
+                      ...prevCarData,
+                      imagePath: file,
+                      imagePathFile: file,
+                    }));
+                  }}
                 />
+                <Typography color="error">{addCarErrors.imagePath}</Typography>
               </Grid>
               <Grid item xs={12}>
+                <InputLabel htmlFor="imagePath">Hình ảnh thêm</InputLabel>
                 <input
                   type="file"
+                  id="image1"
                   name="image1"
-                  accept="image/*"
-                  value={carData.image1}
-                  onChange={handleCarInputChange}
+                  onChange={(event) => {
+                    const file = event.target.files[0];
+                    setCarData((prevCarData) => ({
+                      ...prevCarData,
+                      image1: file,
+                      image1File: file,
+                    }));
+                  }}
                 />
-                
               </Grid>
               <Grid item xs={12}>
+                <InputLabel htmlFor="imagePath">Hình ảnh thêm</InputLabel>
                 <input
                   type="file"
+                  id="image2"
                   name="image2"
-                  accept="image/*"
-                  value={carData.image2}
-                  onChange={handleCarInputChange}
+                  onChange={(event) => {
+                    const file = event.target.files[0];
+                    setCarData((prevCarData) => ({
+                      ...prevCarData,
+                      image2: file,
+                      image2File: file,
+                    }));
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
+                <InputLabel htmlFor="imagePath">Hình ảnh thêm</InputLabel>
                 <input
                   type="file"
+                  id="image3"
                   name="image3"
-                  accept="image/*"
-                  value={carData.image3}
-                  onChange={handleCarInputChange}
+                  onChange={(event) => {
+                    const file = event.target.files[0];
+                    setCarData((prevCarData) => ({
+                      ...prevCarData,
+                      image3: file,
+                      image3File: file,
+                    }));
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -496,7 +632,8 @@ export default function ProductsPage() {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
+                <InputLabel id="date-label">Số Ghế</InputLabel>
+                <Select
                   fullWidth
                   label="Số Ghế"
                   name="chair"
@@ -504,11 +641,15 @@ export default function ProductsPage() {
                   onChange={handleCarInputChange}
                   error={!!addCarErrors.chair}
                   helperText={addCarErrors.chair}
-                />
+                >
+                  <MenuItem value="5">5</MenuItem>
+                  <MenuItem value="7">7</MenuItem>
+                  <MenuItem value="18">18</MenuItem>
+                  <MenuItem value="32">32</MenuItem>
+                </Select>
               </Grid>
               <Grid item xs={12}>
-              <InputLabel id="date-label">Nhiên Liệu Sử Dụng
-              </InputLabel>
+                <InputLabel id="date-label">Nhiên Liệu Sử Dụng</InputLabel>
                 <Select
                   fullWidth
                   name="fuel"
@@ -517,9 +658,9 @@ export default function ProductsPage() {
                   error={!!addCarErrors.fuel}
                   helperText={addCarErrors.fuel}
                 >
-<MenuItem value="Xăng">Xăng</MenuItem>
+                  <MenuItem value="Xăng">Xăng</MenuItem>
                   <MenuItem value="waiting">Điện</MenuItem>
-                  </Select>
+                </Select>
               </Grid>
             </Grid>
           </DialogContent>
@@ -531,6 +672,7 @@ export default function ProductsPage() {
           </DialogActions>
         </Dialog>
         <Card>
+          <UserListToolbar numSelected={selected.length} filterName={filterName} onFilterName={handleFilterByName} />
           <Scrollbar>
             <TableContainer sx={{ minWidth: 800 }}>
               <Table>
@@ -561,17 +703,13 @@ export default function ProductsPage() {
                           </Typography>
                         </Stack>
                       </TableCell>
-                      <TableCell align="left">{car.categoryID}</TableCell>
                       <TableCell align="left">{car.location}</TableCell>
                       <TableCell align="left">{car.description}</TableCell>
                       <TableCell align="left">{car.price}</TableCell>
                       <TableCell align="left">{car.chair}</TableCell>
                       <TableCell component="th" scope="row" padding="none">
                         <Stack direction="row" alignItems="right" spacing={2}>
-                          <Typography> {car.star} </Typography>
-                          <Typography variant="subtitle2" noWrap>
-                            {'sao'}
-                          </Typography>
+                          <Typography> {car.fuel} </Typography>
                         </Stack>
                       </TableCell>
                       <TableCell component="th" scope="row" padding="none">
@@ -682,7 +820,7 @@ export default function ProductsPage() {
           </MenuItem> */}
       </Popover>
       <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)}>
-        <DialogTitle>Chỉnh sửa thông tin</DialogTitle>
+        <DialogTitle>Chỉnh sửa thông tin xe</DialogTitle>
         <br />
         <DialogContent>
           {editCar && (
@@ -699,26 +837,24 @@ export default function ProductsPage() {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
+                <Select
                   fullWidth
-                  label="Danh Mục"
                   name="categoryID"
-                  value={editCar.categoryID}
-                  onChange={handleInputChange}
-                  error={!!formErrors.categoryID}
-                  helperText={formErrors.categoryID}
-                />
+                  value={carData.categoryID}
+                  onChange={handleCarInputChange}
+                  error={!!addCarErrors.categoryID}
+                  helperText={addCarErrors.categoryID}
+                >
+                  <MenuItem value="6564aecee1a105afe2dfbf2d">Quận Liên Chiểu</MenuItem>
+                  <MenuItem value="6564aed5e1a105afe2dfbf30">Quận Sơn Trà</MenuItem>
+                  <MenuItem value="6564aee6e1a105afe2dfbf39">Quận Cẩm Lệ</MenuItem>
+                  <MenuItem value="6564aef3e1a105afe2dfbf3c">Quận Ngũ Hành Sơn</MenuItem>
+                  <MenuItem value="6564aedbe1a105afe2dfbf33">Quận Hải Châu</MenuItem>
+                  <MenuItem value="6564aee0e1a105afe2dfbf36">Quận Thanh Khê</MenuItem>
+                </Select>
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Ảnh Xe"
-                  name="imagePath"
-                  value={editCar.imagePath}
-                  onChange={handleInputChange}
-                  error={!!formErrors.imagePath}
-                  helperText={formErrors.imagePath}
-                />
+                <input type="file" accept="image/*" onChange={(e) => handleFileInputChange(e, 'imagePath')} />
               </Grid>
               <Grid item xs={12}>
                 <TextField
@@ -765,37 +901,16 @@ export default function ProductsPage() {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Ảnh Phụ 1"
-                  name="image1"
-                  value={editCar.image1}
-                  onChange={handleInputChange}
-                  error={!!formErrors.image1}
-                  helperText={formErrors.image1}
-                />
+                {/* Input để chọn file ảnh cho 'image1' */}
+                <input type="file" accept="image/*" onChange={(e) => handleFileInputChange(e, 'image1')} />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Ảnh Phụ 2"
-                  name="image2"
-                  value={editCar.image2}
-                  onChange={handleInputChange}
-                  error={!!formErrors.image2}
-                  helperText={formErrors.image2}
-                />
+                {/* Input để chọn file ảnh cho 'image2' */}
+                <input type="file" accept="image/*" onChange={(e) => handleFileInputChange(e, 'image2')} />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Ảnh Phụ 3"
-                  name="image3"
-                  value={editCar.image3}
-                  onChange={handleInputChange}
-                  error={!!formErrors.image3}
-                  helperText={formErrors.image3}
-                />
+                {/* Input để chọn file ảnh cho 'image3' */}
+                <input type="file" accept="image/*" onChange={(e) => handleFileInputChange(e, 'image3')} />
               </Grid>
               <Grid item xs={12}>
                 <Button onClick={() => handleEditCar(editCar._id, editCar)} color="primary">

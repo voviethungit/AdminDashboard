@@ -30,13 +30,14 @@
     DialogTitle,
     TablePagination,
   } from '@mui/material';
+  import { Link } from 'react-router-dom';
   // components
   import Label from '../components/label';
   import Iconify from '../components/iconify';
   import Scrollbar from '../components/scrollbar';
 
   // sections
-  import { UserListHead } from '../sections/@dashboard/user';
+  import { UserListHead, UserListToolbar } from '../sections/@dashboard/user';
 
   const TABLE_HEAD = [
     { id: 'fullName', label: 'Tên Khách Hàng', alignRight: false },
@@ -74,7 +75,7 @@
       return a[1] - b[1];
     });
     if (query) {
-      return filter(array, (_user) => _user.name.toLowerCase().indexOf(query.toLowerCase()) !== -1);
+      return filter(array, (customer) => customer.fullName.toLowerCase().indexOf(query.toLowerCase()) !== -1);
     }
     return stabilizedThis.map((el) => el[0]);
   }
@@ -101,7 +102,7 @@
     const [selectedUserId, setSelectedUserId] = useState(null);
 
     const [openConfirmation, setOpenConfirmation] = useState(false);
-
+    const isAdmin = localStorage.getItem('isAdmin');
     const handleFileChange = (e) => {
       setEditCustomer({ ...editCustomer, avatar: e.target.files[0] });
     };
@@ -337,6 +338,19 @@
         console.error('Lỗi khi cập nhật thông tin Khách Hàng:', error);
       }
     };
+    const handleFilterByName = (event) => {
+      setPage(0);
+      setFilterName(event.target.value);
+    };
+    if (!isAdmin) {
+      return (
+        <div>
+          <h1 style={{textAlign: 'center'}}>Bạn không phải là Quản trị viên.</h1>
+          <p style={{textAlign: 'center'}}>Nếu là Quản trị viên vui lòng đăng nhập để tiếp tục.</p>
+          <Link to="/login-admin" replace style={{textAlign: 'center', textDecoration: 'none'}}>Đăng Nhập</Link>
+        </div>
+      );
+    }
     return (
       <>
         <Helmet>
@@ -438,6 +452,7 @@
           </Dialog>
 
           <Card>
+          <UserListToolbar numSelected={selected.length} filterName={filterName} onFilterName={handleFilterByName} />
             <Scrollbar>
               <TableContainer sx={{ minWidth: 800 }}>
                 <Table>

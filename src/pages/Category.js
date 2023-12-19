@@ -29,6 +29,7 @@ import {
   DialogTitle,
   TablePagination,
 } from '@mui/material';
+import { Link } from 'react-router-dom';
 // components
 import Label from '../components/label';
 import Iconify from '../components/iconify';
@@ -79,7 +80,7 @@ export default function ProductsPage() {
   const [page, setPage] = useState(0);
 
   const [order, setOrder] = useState('asc');
-
+  const isAdmin = localStorage.getItem('isAdmin');
   const [selected, setSelected] = useState([]);
 
   const [orderBy, setOrderBy] = useState('name');
@@ -275,7 +276,15 @@ export default function ProductsPage() {
         console.error('Lỗi:', error);
       });
   }, []);
-
+  if (!isAdmin) {
+    return (
+      <div>
+        <h1 style={{textAlign: 'center'}}>Bạn không phải là Quản trị viên.</h1>
+        <p style={{textAlign: 'center'}}>Nếu là Quản trị viên vui lòng đăng nhập để tiếp tục.</p>
+        <Link to="/login-admin" replace style={{textAlign: 'center', textDecoration: 'none'}}>Đăng Nhập</Link>
+      </div>
+    );
+  }
   return (
     <div>
       <Helmet>

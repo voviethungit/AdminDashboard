@@ -4,6 +4,9 @@ import { filter } from 'lodash';
 import { sentenceCase } from 'change-case';
 import { useState, useEffect } from 'react';
 import './css/blogs.css';
+import { Editor } from 'react-draft-wysiwyg';
+import { EditorState } from 'draft-js';
+import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 import { FaX } from 'react-icons/fa6';
 // @mui
 import {
@@ -17,6 +20,7 @@ import {
   Checkbox,
   TableRow,
   MenuItem,
+  InputLabel,
   TableBody,
   TableCell,
   Container,
@@ -32,6 +36,7 @@ import {
   TablePagination,
 } from '@mui/material';
 // components
+import { Link } from 'react-router-dom';
 import Label from '../components/label';
 import Iconify from '../components/iconify';
 import Scrollbar from '../components/scrollbar';
@@ -82,7 +87,7 @@ export default function BlogsPage() {
   const [page, setPage] = useState(0);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [selectedBlogIdToDelete, setSelectedBlogIdToDelete] = useState(null);
-
+  const isAdmin = localStorage.getItem('isAdmin');
   const [order, setOrder] = useState('asc');
 
   const [selected, setSelected] = useState([]);
@@ -102,7 +107,7 @@ export default function BlogsPage() {
   });
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedBlogIdToEdit, setSelectedBlogIdToEdit] = useState(null);
-  
+
   // Xử lý mở form chỉnh sửa thông tin blog
   const handleOpenEditDialog = (blogId) => {
     setSelectedBlogIdToEdit(blogId);
@@ -132,16 +137,14 @@ export default function BlogsPage() {
         setEditBlogErrors(errors);
         return;
       }
-  
+
       const accessToken = localStorage.getItem('accessToken');
       const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
-  
-      const response = await axios.put(
-        `http://localhost:5000/update-blog/${selectedBlogIdToEdit}`,
-        editBlogData,
-        { headers }
-      );
-  
+
+      const response = await axios.put(`http://localhost:5000/update-blog/${selectedBlogIdToEdit}`, editBlogData, {
+        headers,
+      });
+
       if (response.data.success) {
         console.log('Cập nhật bài viết thành công:', response.data.blog);
         setOpenEditDialog(false);
@@ -151,7 +154,7 @@ export default function BlogsPage() {
       console.error('Lỗi khi cập nhật bài viết:', error);
     }
   };
-  
+
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [blogData, setBlogData] = useState({
     title: '',
@@ -162,7 +165,7 @@ export default function BlogsPage() {
     title: '',
     content: '',
     imageBlog: '',
-  })
+  });
   const handleCloseMenu = () => {
     setOpen(null);
   };
@@ -218,11 +221,30 @@ export default function BlogsPage() {
   const isNotFound = !filteredBlogs.length && !!filterName;
 
   const handleBlogInputChange = (event) => {
-    const { name, value } = event.target;
-    setBlogData((prevBlogData) => ({
-      ...prevBlogData,
-      [name]: value,
-    }));
+    if (event && event.target) {
+      const { name, value } = event.target;
+      if (name) {
+        setBlogData((prevBlogData) => ({
+          ...prevBlogData,
+          [name]: value,
+        }));
+      }
+    }
+  };
+  
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        // Lấy đường dẫn base64 của ảnh và cập nhật vào state
+        setBlogData({
+          ...blogData,
+          imageBlog: reader.result,
+        });
+      };
+    }
   };
 
   const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -235,34 +257,47 @@ export default function BlogsPage() {
     setOpenAddDialog(false);
   };
 
+  const [editorState, setEditorState] = useState(() => EditorState.createEmpty());
+
+  const onEditorStateChange = (newEditorState) => {
+    setEditorState(newEditorState);
+  };
+
   const handleAddBlog = async () => {
     try {
       const errors = {};
       if (!blogData.title || blogData.title.trim() === '') {
         errors.title = 'Vui lòng nhập tiêu đề.';
       }
-
-      if (!blogData.content || blogData.content.trim() === '') {
-        errors.content = 'Vui lòng nhập thông tin bài viết.';
-      }
-
-      if (!blogData.imageBlog || blogData.imageBlog.trim() === '') {
-        errors.imageBlog = 'Vui lòng nhập URL Hình Ảnh.';
-      }
       if (Object.keys(errors).length > 0) {
         setAddBlogErrors(errors);
         return;
       }
+      const contentState = editorState.getCurrentContent();
+    const contentPlainText = contentState.getPlainText();
+      const formData = new FormData();
+      formData.append('title', blogData.title);
+      formData.append('content', contentPlainText);
+      formData.append('imageBlog', blogData.imageBlog);
       const accessToken = localStorage.getItem('accessToken');
-      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
-
-      const response = await axios.post('http://localhost:5000/upload-blog', blogData, {
-        headers,
-      });
+      const headers = {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${accessToken}`,
+      };
+      const response = await axios.post('http://localhost:5000/upload-blog', formData, { headers });
 
       if (response.data.success) {
         console.log('Thêm bài viết thành công:', response.data.blog);
         handleCloseAddDialog();
+        axios
+          .get('http://localhost:5000/get-blog')
+          .then((response) => {
+            const blogsData = response.data.blogs;
+            setBlogs(blogsData);
+          })
+          .catch((error) => {
+            console.error('Lỗi:', error);
+          });
       }
     } catch (error) {
       console.error('Lỗi khi thêm bài viết:', error);
@@ -270,7 +305,6 @@ export default function BlogsPage() {
   };
 
   // HANDLE EDIT BLOG
- 
 
   const deleteBlogById = async (blogId) => {
     try {
@@ -294,8 +328,16 @@ export default function BlogsPage() {
       .catch((error) => {
         console.error('Lỗi:', error);
       });
-  }, []);
-
+  }, [openAddDialog]);
+  if (!isAdmin) {
+    return (
+      <div>
+        <h1 style={{textAlign: 'center'}}>Bạn không phải là Quản trị viên.</h1>
+        <p style={{textAlign: 'center'}}>Nếu là Quản trị viên vui lòng đăng nhập để tiếp tục.</p>
+        <Link to="/login-admin" replace style={{textAlign: 'center', textDecoration: 'none'}}>Đăng Nhập</Link>
+      </div>
+    );
+  }
   return (
     <div>
       <Helmet>
@@ -313,40 +355,65 @@ export default function BlogsPage() {
         <Dialog open={openAddDialog} onClose={handleCloseAddDialog}>
           <DialogTitle>Thêm Bài Viết</DialogTitle>
           <DialogContent>
-          <Grid container spacing={2}>
+            <Grid container spacing={2}>
               <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Tiêu Đề Bài Viết"
-              name="title"
-              value={blogData.title}
-              onChange={handleBlogInputChange}
-              error={!!addBlogErrors.title}
-              helperText={addBlogErrors.title}
-            />
-             </Grid>
-             <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Mô Tả Bài Viết"
-              name="content"
-              value={blogData.content}
-              onChange={handleBlogInputChange}
-              error={!!addBlogErrors.content}
-              helperText={addBlogErrors.content}
-            />
-            </Grid>
-            <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Ảnh Bài Viết"
-              name="imageBlog"
-              value={blogData.imageBlog}
-              onChange={handleBlogInputChange}
-              error={!!addBlogErrors.imageBlog}
-              helperText={addBlogErrors.imageBlog}
-            />
-            </Grid>
+                <TextField
+                  fullWidth
+                  label="Tiêu Đề Bài Viết"
+                  name="title"
+                  value={blogData.title}
+                  onChange={handleBlogInputChange}
+                  error={!!addBlogErrors.title}
+                  helperText={addBlogErrors.title}
+                />
+              </Grid>
+              {/* <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Mô Tả Bài Viết"
+                  name="content"
+                  value={blogData.content}
+                  onChange={handleBlogInputChange}
+                  error={!!addBlogErrors.content}
+                  helperText={addBlogErrors.content}
+                />
+              </Grid> */}
+              <Grid item xs={12}>
+              <InputLabel htmlFor="content">Mô Tả Bài Viết</InputLabel>
+                <Editor
+                editorState={editorState}
+                onEditorStateChange={onEditorStateChange}
+                  toolbar={{
+                    options: [
+                      'inline',
+                      'blockType',
+                      'fontSize',
+                      'list',
+                      'textAlign',
+                      'link',
+                      'embedded',
+                      'emoji',
+                      'image',
+                      'remove',
+                      'history',
+                    ],
+                    inline: {
+                      options: [
+                        'bold',
+                        'italic',
+                        'underline',
+                        'strikethrough',
+                        'monospace',
+                        'superscript',
+                        'subscript',
+                      ],
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e)} />
+              </Grid>
             </Grid>
           </DialogContent>
           <DialogActions>
@@ -394,7 +461,7 @@ export default function BlogsPage() {
                       </TableCell>
                       <TableCell>
                         <Stack direction="row" alignItems="right" spacing={2}>
-                          <MenuItem onClick={() => handleOpenEditDialog(blog._id)}> 
+                          <MenuItem onClick={() => handleOpenEditDialog(blog._id)}>
                             <Iconify icon={'eva:edit-fill'} sx={{ mr: 2 }} />
                             Chỉnh sửa
                           </MenuItem>
@@ -481,58 +548,52 @@ export default function BlogsPage() {
         </MenuItem> */}
       </Popover>
       <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)}>
-  <DialogTitle>Chỉnh sửa bài viết</DialogTitle>
-  <DialogContent>
-    <br/>
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="Tiêu Đề Bài Viết"
-          name="title"
-          value={editBlogData.title}
-          onChange={(e) =>
-            setEditBlogData({ ...editBlogData, title: e.target.value })
-          }
-          error={!!editBlogErrors.title}
-          helperText={editBlogErrors.title}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="Mô Tả Bài Viết"
-          name="content"
-          value={editBlogData.content}
-          onChange={(e) =>
-            setEditBlogData({ ...editBlogData, content: e.target.value })
-          }
-          error={!!editBlogErrors.content}
-          helperText={editBlogErrors.content}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="URL Hình Ảnh Bài Viết"
-          name="imageBlog"
-          value={editBlogData.imageBlog}
-          onChange={(e) =>
-            setEditBlogData({ ...editBlogData, imageBlog: e.target.value })
-          }
-          error={!!editBlogErrors.imageBlog}
-          helperText={editBlogErrors.imageBlog}
-        />
-      </Grid>
-    </Grid>
-  </DialogContent>
-  <DialogActions>
-    <Button onClick={() => setOpenEditDialog(false)}>Hủy</Button>
-    <Button onClick={handleUpdateBlog} color="primary">
-      Lưu
-    </Button>
-  </DialogActions>
-</Dialog>
+        <DialogTitle>Chỉnh sửa bài viết</DialogTitle>
+        <DialogContent>
+          <br />
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Tiêu Đề Bài Viết"
+                name="title"
+                value={editBlogData.title}
+                onChange={(e) => setEditBlogData({ ...editBlogData, title: e.target.value })}
+                error={!!editBlogErrors.title}
+                helperText={editBlogErrors.title}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Mô Tả Bài Viết"
+                name="content"
+                value={editBlogData.content}
+                onChange={(e) => setEditBlogData({ ...editBlogData, content: e.target.value })}
+                error={!!editBlogErrors.content}
+                helperText={editBlogErrors.content}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="URL Hình Ảnh Bài Viết"
+                name="imageBlog"
+                value={editBlogData.imageBlog}
+                onChange={(e) => setEditBlogData({ ...editBlogData, imageBlog: e.target.value })}
+                error={!!editBlogErrors.imageBlog}
+                helperText={editBlogErrors.imageBlog}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditDialog(false)}>Hủy</Button>
+          <Button onClick={handleUpdateBlog} color="primary">
+            Lưu
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Dialog
         open={openConfirmDialog}
         onClose={() => setOpenConfirmDialog(false)}
